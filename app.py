@@ -75,6 +75,5 @@ def api_conferma_stampa():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.drop_all()      # <-- cancella tutto (solo la prima volta!)
         db.create_all()    # <-- ricrea tutto con timestamp incluso
     app.run(debug=True, host="0.0.0.0", port=5000)
