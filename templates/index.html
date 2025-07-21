@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Ordina</title></head>
+<body>
+    {% if conferma %}
+        <h2>Ordine inviato alla cassa!</h2>
+    {% else %}
+    <h1>Ordina</h1>
+    <form method="post" action="/invia_ordine">
+        <label>N° Tavolo: <input name="tavolo" required></label><br>
+        <label>Cognome: <input name="cognome" required></label><br>
+        <ul>
+            {% for voce in menu %}
+                <li>{{ voce }} <input type="number" name="quantita_{{ loop.index0 }}" min="0" value="0"></li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Invia ordine</button>
+    </form>
+    {% endif %}
+</body>
+</html>

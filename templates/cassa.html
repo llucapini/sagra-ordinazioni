@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Cassa</title></head>
+<body>
+    <h1>Ordini da Pagare</h1>
+    {% for o in ordini %}
+        <div>
+            <strong>[{{ o.timestamp.strftime('%H:%M:%S') }}]</strong>
+            Tavolo {{ o.tavolo }} - {{ o.cognome }}: {{ o.dettagli }}
+            <form method="post" action="/paga_stampa" style="display:inline;">
+                <input type="hidden" name="id" value="{{ o.id }}">
+                <button type="submit">Segna come pagato</button>
+            </form>
+        </div>
+    {% endfor %}
+</body>
+</html>
