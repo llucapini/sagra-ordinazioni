@@ -1,8 +1,8 @@
-
 from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import os
 import uuid
+from datetime import datetime  # <-- import aggiunto
 
 app = Flask(__name__)
 DATABASE_URL = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql://", 1)
@@ -16,6 +16,7 @@ class Ordine(db.Model):
     cognome = db.Column(db.String, nullable=False)
     dettagli = db.Column(db.Text, nullable=False)
     stato = db.Column(db.String, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # <-- nuovo campo
 
 @app.route("/", methods=["GET"])
 def index():
@@ -74,5 +75,6 @@ def api_conferma_stampa():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
+        db.drop_all()      # <-- cancella tutto (solo la prima volta!)
+        db.create_all()    # <-- ricrea tutto con timestamp incluso
     app.run(debug=True, host="0.0.0.0", port=5000)
