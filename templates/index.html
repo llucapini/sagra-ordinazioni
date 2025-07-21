@@ -1,30 +1,21 @@
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Ordine Inviato</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
+<html>
+<head><meta charset="UTF-8"><title>Ordine</title><link rel="stylesheet" href="/static/style.css"></head>
 <body>
     {% if conferma %}
         <h2>Ordine inviato alla cassa. Grazie!</h2>
     {% else %}
-    <h1>Gestione Ordini - Sagra di Paese</h1>
-    <form action="/invia_ordine" method="post">
-        <label for="tavolo">N° Tavolo:</label>
-        <input type="text" name="tavolo" required>
-        <label for="cognome">Cognome:</label>
-        <input type="text" name="cognome" required>
-        <h3>Menù</h3>
-        {% for voce in menu %}
-            <div>
-                <label>{{ voce }}</label>
-                <input type="number" name="quantita_{{ loop.index0 }}" value="0" min="0">
-            </div>
-        {% endfor %}
-        <button type="submit">Invia Ordine</button>
-    </form>
+        <h1>Ordina</h1>
+        <form method="post" action="/invia_ordine">
+            <label>N° Tavolo: <input name="tavolo" required></label><br>
+            <label>Cognome: <input name="cognome" required></label><br>
+            <h3>Menù</h3>
+            {% for voce in menu %}
+                <label>{{voce}} <input type="number" name="quantita_{{loop.index0}}" value="0" min="0"></label><br>
+            {% endfor %}
+            <button type="submit">Invia Ordine</button>
+        </form>
     {% endif %}
 </body>
 </html>

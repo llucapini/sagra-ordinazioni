@@ -1,92 +1,78 @@
 
-from flask import Flask, render_template, request, redirect
-import csv
+from flask import Flask, render_template, request, redirect, jsonify
+from flask_sqlalchemy import SQLAlchemy
 import os
+import uuid
 
 app = Flask(__name__)
-menu = ["Lasagne", "Polenta", "Salsiccia", "Patatine", "Acqua", "Vino", "Birra"]
-csv_file = "ordini.csv"
+DATABASE_URL = os.environ.get("DATABASE_URL", "").replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+class Ordine(db.Model):
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tavolo = db.Column(db.String, nullable=False)
+    cognome = db.Column(db.String, nullable=False)
+    dettagli = db.Column(db.Text, nullable=False)
+    stato = db.Column(db.String, nullable=False)
 
 @app.route("/", methods=["GET"])
 def index():
+    menu = ["Lasagne", "Polenta", "Salsiccia", "Patatine", "Acqua", "Vino", "Birra"]
     return render_template("index.html", menu=menu, conferma=False)
 
 @app.route("/invia_ordine", methods=["POST"])
 def invia_ordine():
+    menu = ["Lasagne", "Polenta", "Salsiccia", "Patatine", "Acqua", "Vino", "Birra"]
     tavolo = request.form.get("tavolo")
     cognome = request.form.get("cognome")
-    quantita = []
+    dettagli = []
     for i in range(len(menu)):
         q = int(request.form.get(f"quantita_{i}", 0))
         if q > 0:
-            quantita.append(f"{menu[i]} x {q}")
-    if tavolo and cognome and quantita:
-        nuovo_ordine = {
-            "id": genera_id(),
-            "tavolo": tavolo,
-            "cognome": cognome,
-            "dettagli": ", ".join(quantita),
-            "stato": "inserito"
-        }
-        scrivi_ordine(nuovo_ordine)
+            dettagli.append(f"{menu[i]} x {q}")
+    if tavolo and cognome and dettagli:
+        ordine = Ordine(tavolo=tavolo, cognome=cognome, dettagli=", ".join(dettagli), stato="inserito")
+        db.session.add(ordine)
+        db.session.commit()
     return render_template("index.html", menu=menu, conferma=True)
 
-@app.route("/cassa", methods=["GET"])
+@app.route("/cassa")
 def cassa():
-    ordini = [o for o in leggi_ordini() if o["stato"] == "inserito"]
+    ordini = Ordine.query.filter_by(stato="inserito").all()
     return render_template("cassa.html", ordini=ordini)
 
 @app.route("/paga_stampa", methods=["POST"])
 def paga_stampa():
     ordine_id = request.form.get("id")
-    ordini = leggi_ordini()
-    for ordine in ordini:
-        if ordine["id"] == ordine_id:
-            ordine["stato"] = "stampato"
-            stampa_ordine(ordine)
-            break
-    salva_tutti_gli_ordini(ordini)
+    ordine = Ordine.query.get(ordine_id)
+    if ordine:
+        ordine.stato = "stampato"
+        db.session.commit()
     return redirect("/cassa")
 
-def leggi_ordini():
-    ordini = []
-    if os.path.exists(csv_file):
-        with open(csv_file, newline='', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ordini.append(row)
-    return ordini
+@app.route("/api/ordini-da-stampare")
+def api_ordini_da_stampare():
+    ordini = Ordine.query.filter_by(stato="stampato").all()
+    return jsonify([{
+        "id": o.id,
+        "tavolo": o.tavolo,
+        "cognome": o.cognome,
+        "dettagli": o.dettagli,
+        "stato": o.stato
+    } for o in ordini])
 
-def scrivi_ordine(ordine):
-    file_esiste = os.path.exists(csv_file)
-    with open(csv_file, "a", newline='', encoding='utf-8') as f:
-        fieldnames = ["id", "tavolo", "cognome", "dettagli", "stato"]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if not file_esiste:
-            writer.writeheader()
-        writer.writerow(ordine)
-
-def salva_tutti_gli_ordini(ordini):
-    with open(csv_file, "w", newline='', encoding='utf-8') as f:
-        fieldnames = ["id", "tavolo", "cognome", "dettagli", "stato"]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for ordine in ordini:
-            writer.writerow(ordine)
-
-def genera_id():
-    from uuid import uuid4
-    return str(uuid4())
-
-def stampa_ordine(ordine):
-    with open("ordine_da_stampare.txt", "w", encoding="utf-8") as f:
-        f.write(f"Ordine - Tavolo {ordine['tavolo']} - {ordine['cognome']}\n")
-        f.write(ordine["dettagli"])
-    try:
-        import os
-        os.startfile("ordine_da_stampare.txt", "print")
-    except:
-        print("Stampa non riuscita o non supportata su questo sistema.")
+@app.route("/api/conferma-stampa", methods=["POST"])
+def api_conferma_stampa():
+    data = request.get_json()
+    ordine = Ordine.query.get(data["id"])
+    if ordine:
+        ordine.stato = "stampati-localmente"
+        db.session.commit()
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, host="0.0.0.0", port=5000)

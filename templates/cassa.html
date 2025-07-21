@@ -1,23 +1,17 @@
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Postazione Cassa</title>
-</head>
+<html>
+<head><meta charset="UTF-8"><title>Cassa</title></head>
 <body>
     <h1>Ordini da Pagare</h1>
-    <ul>
-        {% for ordine in ordini %}
-        <li>
-            Tavolo {{ ordine['tavolo'] }} - {{ ordine['cognome'] }}:
-            {{ ordine['dettagli'] }} -
-            <form action="/paga_stampa" method="post" style="display:inline;">
-                <input type="hidden" name="id" value="{{ ordine['id'] }}">
-                <button type="submit">Segna come pagato e stampa</button>
+    {% for o in ordini %}
+        <div>
+            Tavolo {{ o.tavolo }} - {{ o.cognome }}: {{ o.dettagli }}
+            <form method="post" action="/paga_stampa" style="display:inline;">
+                <input type="hidden" name="id" value="{{ o.id }}">
+                <button type="submit">Segna come pagato</button>
             </form>
-        </li>
-        {% endfor %}
-    </ul>
+        </div>
+    {% endfor %}
 </body>
 </html>
